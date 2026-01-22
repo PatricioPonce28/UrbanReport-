@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'edit_report_screen.dart';
 
 class MyReportsScreen extends StatefulWidget {
   const MyReportsScreen({super.key});
@@ -102,147 +103,163 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
     }
   }
 
-  void _showReportDetail(Map<String, dynamic> reporte) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        maxChildSize: 0.9,
-        minChildSize: 0.5,
-        expand: false,
-        builder: (context, scrollController) => SingleChildScrollView(
-          controller: scrollController,
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF003DA5).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      _getCategoriaIcon(reporte['categoria']),
-                      color: const Color(0xFF003DA5),
-                      size: 32,
-                    ),
+void _showReportDetail(Map<String, dynamic> reporte) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (context) => DraggableScrollableSheet(
+      initialChildSize: 0.7,
+      maxChildSize: 0.9,
+      minChildSize: 0.5,
+      expand: false,
+      builder: (context, scrollController) => SingleChildScrollView(
+        controller: scrollController,
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header con botón de editar
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF003DA5).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          reporte['titulo'],
+                  child: Icon(
+                    _getCategoriaIcon(reporte['categoria']),
+                    color: const Color(0xFF003DA5),
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        reporte['titulo'],
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getEstadoColor(reporte['estado']),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          _getEstadoLabel(reporte['estado']),
                           style: const TextStyle(
-                            fontSize: 20,
+                            color: Colors.white,
+                            fontSize: 12,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _getEstadoColor(reporte['estado']),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            _getEstadoLabel(reporte['estado']),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // Categoría
-              _DetailRow(
-                icon: Icons.category,
-                label: 'Categoría',
-                value: _getCategoriaLabel(reporte['categoria']),
-              ),
-              const SizedBox(height: 16),
-
-              // Descripción
-              _DetailRow(
-                icon: Icons.description,
-                label: 'Descripción',
-                value: reporte['descripcion'],
-              ),
-              const SizedBox(height: 16),
-
-              // Fecha
-              _DetailRow(
-                icon: Icons.calendar_today,
-                label: 'Fecha',
-                value: _formatDate(reporte['created_at']),
-              ),
-              const SizedBox(height: 16),
-
-              // Ubicación
-              if (reporte['latitud'] != null && reporte['longitud'] != null) ...[
-                _DetailRow(
-                  icon: Icons.location_on,
-                  label: 'Ubicación',
-                  value: 'Lat: ${reporte['latitud'].toStringAsFixed(6)}\n'
-                      'Lng: ${reporte['longitud'].toStringAsFixed(6)}',
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              // Foto
-              if (reporte['foto_url'] != null) ...[
-                const Text(
-                  'Fotografía',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF003DA5),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    reporte['foto_url'],
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        height: 200,
-                        color: Colors.grey.shade200,
-                        child: const Center(
-                          child: Icon(Icons.error_outline, size: 48),
-                        ),
-                      );
-                    },
-                  ),
+                // ⭐ BOTÓN DE EDITAR
+                IconButton(
+                  icon: const Icon(Icons.edit, color: Color(0xFF003DA5)),
+                  onPressed: () async {
+                    Navigator.pop(context); // Cerrar el bottom sheet
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => EditReportScreen(reporte: reporte),
+                      ),
+                    );
+                    if (result == true) {
+                      _loadReports(); // Recargar si hubo cambios
+                    }
+                  },
                 ),
               ],
+            ),
+            const SizedBox(height: 24),
+
+            // Categoría
+            _DetailRow(
+              icon: Icons.category,
+              label: 'Categoría',
+              value: _getCategoriaLabel(reporte['categoria']),
+            ),
+            const SizedBox(height: 16),
+
+            // Descripción
+            _DetailRow(
+              icon: Icons.description,
+              label: 'Descripción',
+              value: reporte['descripcion'],
+            ),
+            const SizedBox(height: 16),
+
+            // Fecha
+            _DetailRow(
+              icon: Icons.calendar_today,
+              label: 'Fecha',
+              value: _formatDate(reporte['created_at']),
+            ),
+            const SizedBox(height: 16),
+
+            // Ubicación
+            if (reporte['latitud'] != null && reporte['longitud'] != null) ...[
+              _DetailRow(
+                icon: Icons.location_on,
+                label: 'Ubicación',
+                value: 'Lat: ${reporte['latitud'].toStringAsFixed(6)}\n'
+                    'Lng: ${reporte['longitud'].toStringAsFixed(6)}',
+              ),
+              const SizedBox(height: 16),
             ],
-          ),
+
+            // Foto
+            if (reporte['foto_url'] != null) ...[
+              const Text(
+                'Fotografía',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF003DA5),
+                ),
+              ),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  reporte['foto_url'],
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      height: 200,
+                      color: Colors.grey.shade200,
+                      child: const Center(
+                        child: Icon(Icons.error_outline, size: 48),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
