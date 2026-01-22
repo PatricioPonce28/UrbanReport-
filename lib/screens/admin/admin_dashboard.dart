@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../auth/login_screen.dart';
 import 'map_widget.dart'; // Importar el widget del mapa
+import 'image_viewer_screen.dart'; 
+import 'admin_map_view_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -30,6 +32,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
     super.initState();
     _loadStats();
   }
+
+  
 
   Future<void> _loadStats() async {
     setState(() => _isLoadingStats = true);
@@ -63,6 +67,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
       setState(() => _isLoadingStats = false);
     }
   }
+
+  
 
   Future<void> _loadStatsManual() async {
     try {
@@ -310,6 +316,31 @@ class _DashboardTab extends StatelessWidget {
                         ],
                       ),
                     ),
+
+                    // Botón de mapa
+SizedBox(
+  width: double.infinity,
+  child: ElevatedButton.icon(
+    onPressed: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const AdminMapViewScreen()),
+      );
+    },
+    icon: const Icon(Icons.map, size: 24),
+    label: const Text(
+      'Ver Todos los Reportes en Mapa',
+      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+    ),
+    style: ElevatedButton.styleFrom(
+      backgroundColor: const Color(0xFF003DA5),
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+    ),
+  ),
+),
                     const SizedBox(height: 24),
 
                     // Estadísticas principales
@@ -375,6 +406,7 @@ class _DashboardTab extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
 
+                    const SizedBox(height: 24),
                     _StatCardWidget(
                       icon: Icons.check_circle,
                       title: 'Resueltos',
@@ -839,19 +871,91 @@ class _AdminReportsScreenState extends State<_AdminReportsScreen> {
                                       ),
                                     ],
                                   ),
-                                  if (reporte['descripcion'] != null && reporte['descripcion'].toString().isNotEmpty)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 8),
-                                      child: Text(
-                                        reporte['descripcion'].toString(),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: Colors.grey[700],
-                                        ),
-                                      ),
-                                    ),
+if (reporte['foto_url'] != null && reporte['foto_url'].toString().isNotEmpty)
+  Padding(
+    padding: const EdgeInsets.only(top: 8),
+    child: GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ImageViewerScreen(
+              imageUrl: reporte['foto_url'],
+              titulo: reporte['titulo'] ?? 'Imagen del reporte',
+            ),
+          ),
+        );
+      },
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.network(
+              reporte['foto_url'],
+              height: 150,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Container(
+                  height: 150,
+                  color: Colors.grey[200],
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded /
+                              loadingProgress.expectedTotalBytes!
+                          : null,
+                    ),
+                  ),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  height: 150,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, color: Colors.red, size: 40),
+                      SizedBox(height: 8),
+                      Text('Error al cargar'),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          // Indicador de que se puede hacer clic
+          Positioned(
+            bottom: 8,
+            right: 8,
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.6),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.zoom_in, color: Colors.white, size: 16),
+                  SizedBox(width: 4),
+                  Text(
+                    'Ver',
+                    style: TextStyle(color: Colors.white, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  ),
                                   if (reporte['latitud'] != null && reporte['longitud'] != null)
                                     Padding(
                                       padding: const EdgeInsets.only(top: 8),

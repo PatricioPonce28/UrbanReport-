@@ -5,6 +5,7 @@ import '../admin/admin_dashboard.dart';
 import 'profile_screen.dart';
 import 'reports_screen.dart';
 import 'my_reports_screen.dart';
+import 'map_view_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -346,23 +347,20 @@ class _HomeTab extends StatelessWidget {
                       homeState?.setState(() => homeState._currentIndex = 3);
                     },
                   ),
-                  _QuickActionCard(
-                    icon: Icons.map_outlined,
-                    title: 'Mapa',
-                    color: const Color(0xFFFDB913),
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Próximamente: Vista de mapa'),
-                        ),
-                      );
-                    },
-                  ),
+_QuickActionCard(
+  icon: Icons.map_outlined,
+  title: 'Mis Reportes',
+  color: const Color(0xFFFDB913),
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const MapViewScreen()),
+    );
+  },
+),
                 ],
               ),
               const SizedBox(height: 24),
-              
-
             ],
           ),
         ),
