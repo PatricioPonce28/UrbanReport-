@@ -35,7 +35,6 @@ class _HomeScreenState extends State<HomeScreen> {
         _userName = _user!.userMetadata?['name'] ?? 'Usuario';
       });
 
-      // Cargar el rol del usuario
       try {
         print('🔍 Cargando perfil para usuario: ${_user!.id}');
         
@@ -55,14 +54,11 @@ class _HomeScreenState extends State<HomeScreen> {
           _isLoadingRole = false;
         });
 
-        // Si es admin, redirigir al dashboard
         if (_userRole == 'admin' && mounted) {
           print('🚀 Redirigiendo al Dashboard de Admin');
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (_) => const AdminDashboard()),
           );
-        } else {
-          print('👤 Usuario normal - permaneciendo en Home');
         }
       } catch (e) {
         print('❌ Error al cargar perfil: $e');
@@ -75,17 +71,21 @@ class _HomeScreenState extends State<HomeScreen> {
     final shouldSignOut = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Cerrar Sesión'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('¿Cerrar sesión?'),
         content: const Text('¿Estás seguro de que deseas cerrar sesión?'),
+        actionsAlignment: MainAxisAlignment.spaceEvenly,
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: const Text('Cancelar'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFFE31E24),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE31E24),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             child: const Text('Cerrar Sesión'),
           ),
@@ -107,9 +107,11 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error al cerrar sesión'),
-          backgroundColor: Color(0xFFE31E24),
+        SnackBar(
+          content: const Text('Error al cerrar sesión'),
+          backgroundColor: const Color(0xFFE31E24),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
     }
@@ -119,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     if (_isLoadingRole) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(child: CircularProgressIndicator(color: Color(0xFF003DA5))),
       );
     }
 
@@ -136,9 +138,9 @@ class _HomeScreenState extends State<HomeScreen> {
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, -5),
+              color: Colors.black.withOpacity(0.12),
+              blurRadius: 12,
+              offset: const Offset(0, -4),
             ),
           ],
         ),
@@ -148,31 +150,16 @@ class _HomeScreenState extends State<HomeScreen> {
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
           selectedItemColor: const Color(0xFF003DA5),
-          unselectedItemColor: Colors.grey,
-          selectedFontSize: 12,
-          unselectedFontSize: 12,
+          unselectedItemColor: Colors.grey.shade600,
+          selectedFontSize: 11,
+          unselectedFontSize: 11,
           elevation: 0,
+          showUnselectedLabels: true,
           items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Inicio',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.add_circle_outline),
-              activeIcon: Icon(Icons.add_circle),
-              label: 'Reportar',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.list_alt_outlined),
-              activeIcon: Icon(Icons.list_alt),
-              label: 'Mis Reportes',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Perfil',
-            ),
+            BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Inicio'),
+            BottomNavigationBarItem(icon: Icon(Icons.add_circle_outline), activeIcon: Icon(Icons.add_circle), label: 'Reportar'),
+            BottomNavigationBarItem(icon: Icon(Icons.list_alt_outlined), activeIcon: Icon(Icons.list_alt), label: 'Mis Reportes'),
+            BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Perfil'),
           ],
         ),
       ),
@@ -180,7 +167,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// En tu home_screen.dart, dentro de la clase _HomeTab
+// Tarjeta de estadística (no la usas ahora, pero la dejo mejorada por si la usas después)
 Widget _StatCard({
   required IconData icon,
   required String title,
@@ -191,177 +178,178 @@ Widget _StatCard({
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(20),
       border: Border.all(color: Colors.grey.shade200),
       boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.05),
-          blurRadius: 10,
-          offset: const Offset(0, 4),
-        ),
+        BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, 5)),
       ],
     ),
     child: Column(
       children: [
-        Icon(icon, color: color, size: 32),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade600,
-          ),
-        ),
+        Icon(icon, color: color, size: 36),
+        const SizedBox(height: 10),
+        Text(value, style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: color)),
+        const SizedBox(height: 6),
+        Text(title, style: TextStyle(fontSize: 13, color: Colors.grey.shade700)),
       ],
     ),
   );
 }
 
-// Tab de Inicio
+// Tab Inicio
 class _HomeTab extends StatelessWidget {
   final String userName;
   final VoidCallback onSignOut;
 
-  const _HomeTab({
-    required this.userName,
-    required this.onSignOut,
-  });
+  const _HomeTab({required this.userName, required this.onSignOut});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Inicio'),
+        title: const Text('Quito App', style: TextStyle(fontWeight: FontWeight.w700)),
+        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF003DA5),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout_rounded),
             tooltip: 'Cerrar Sesión',
             onPressed: onSignOut,
           ),
         ],
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header de bienvenida
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF003DA5), Color(0xFF0055CC)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFF8FAFC), Color(0xFFEFF4FF)],
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header de bienvenida
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(28),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF003DA5), Color(0xFF005BFF)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF003DA5).withOpacity(0.3),
+                        blurRadius: 16,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
                   ),
-                  borderRadius: BorderRadius.circular(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '¡Bienvenido de nuevo!',
+                        style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        userName,
+                        style: const TextStyle(fontSize: 22, color: Colors.white, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Ayúdanos a mantener Quito más limpia y segura',
+                        style: TextStyle(fontSize: 15, color: Colors.white70),
+                      ),
+                    ],
+                  ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+
+                const SizedBox(height: 32),
+
+                // Sección Acciones Rápidas
+                Row(
                   children: [
-                    const Text(
-                      '¡Hola!',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                    Container(
+                      width: 5,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE31E24),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      userName,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        color: Colors.white70,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
+                    const SizedBox(width: 12),
                     const Text(
-                      'Bienvenido a Quito App',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white70,
-                      ),
+                      'Acciones Rápidas',
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF003DA5)),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 24),
-              
-              // Título de sección
-              const Text(
-                'Acciones Rápidas',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF003DA5),
+
+                const SizedBox(height: 20),
+
+                GridView.count(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 20,
+                  crossAxisSpacing: 20,
+                  childAspectRatio: 1.05,
+                  children: [
+                    _QuickActionCard(
+                      icon: Icons.report_problem_rounded,
+                      title: 'Nuevo Reporte',
+                      color: const Color(0xFFE31E24),
+                      onTap: () {
+                        final homeState = context.findAncestorStateOfType<_HomeScreenState>();
+                        homeState?.setState(() => homeState._currentIndex = 1);
+                      },
+                    ),
+                    _QuickActionCard(
+                      icon: Icons.list_alt_rounded,
+                      title: 'Mis Reportes',
+                      color: const Color(0xFF003DA5),
+                      onTap: () {
+                        final homeState = context.findAncestorStateOfType<_HomeScreenState>();
+                        homeState?.setState(() => homeState._currentIndex = 2);
+                      },
+                    ),
+                    _QuickActionCard(
+                      icon: Icons.person_rounded,
+                      title: 'Mi Perfil',
+                      color: const Color(0xFF00A650),
+                      onTap: () {
+                        final homeState = context.findAncestorStateOfType<_HomeScreenState>();
+                        homeState?.setState(() => homeState._currentIndex = 3);
+                      },
+                    ),
+                    // Tarjeta del mapa – ahora más bonita y con nombre correcto
+                    _QuickActionCard(
+                      icon: Icons.map_rounded,
+                      title: 'Mapa de Reportes',
+                      color: const Color(0xFFFDB913), // amarillo quiteño
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const MapViewScreen()),
+                        );
+                      },
+                      isSpecial: true, // para aplicar estilo diferente
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 16),
-              
-              // Grid de acciones
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
-                childAspectRatio: 1.1,
-                children: [
-                  _QuickActionCard(
-                    icon: Icons.report_problem_outlined,
-                    title: 'Nuevo Reporte',
-                    color: const Color(0xFFE31E24),
-                    onTap: () {
-                      // Cambiar a la tab de reportes
-                      final homeState = context.findAncestorStateOfType<_HomeScreenState>();
-                      homeState?.setState(() => homeState._currentIndex = 1);
-                    },
-                  ),
-                  _QuickActionCard(
-                    icon: Icons.list_alt,
-                    title: 'Mis Reportes',
-                    color: const Color(0xFF003DA5),
-                    onTap: () {
-                      final homeState = context.findAncestorStateOfType<_HomeScreenState>();
-                      homeState?.setState(() => homeState._currentIndex = 2);
-                    },
-                  ),
-                  _QuickActionCard(
-                    icon: Icons.person,
-                    title: 'Mi Perfil',
-                    color: const Color(0xFF00A650),
-                    onTap: () {
-                      final homeState = context.findAncestorStateOfType<_HomeScreenState>();
-                      homeState?.setState(() => homeState._currentIndex = 3);
-                    },
-                  ),
-_QuickActionCard(
-  icon: Icons.map_outlined,
-  title: 'Mis Reportes',
-  color: const Color(0xFFFDB913),
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const MapViewScreen()),
-    );
-  },
-),
-                ],
-              ),
-              const SizedBox(height: 24),
-            ],
+
+                const SizedBox(height: 40),
+              ],
+            ),
           ),
         ),
       ),
@@ -369,35 +357,46 @@ _QuickActionCard(
   }
 }
 
-// Card de acción rápida
+// Card de acción rápida – con opción para destacar la del mapa
 class _QuickActionCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final Color color;
   final VoidCallback onTap;
+  final bool isSpecial;
 
   const _QuickActionCard({
     required this.icon,
     required this.title,
     required this.color,
     required this.onTap,
+    this.isSpecial = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(20),
+      splashColor: color.withOpacity(0.15),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade200),
+          gradient: isSpecial
+              ? LinearGradient(
+                  colors: [color.withOpacity(0.15), color.withOpacity(0.05)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
+          color: isSpecial ? null : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: isSpecial ? color.withOpacity(0.4) : Colors.grey.shade200),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: isSpecial ? color.withOpacity(0.35) : Colors.black.withOpacity(0.06),
+              blurRadius: isSpecial ? 16 : 10,
+              offset: const Offset(0, 6),
+              spreadRadius: isSpecial ? 2 : 0,
             ),
           ],
         ),
@@ -405,25 +404,21 @@ class _QuickActionCard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withOpacity(0.12),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                icon,
-                size: 36,
-                color: color,
-              ),
+              child: Icon(icon, size: isSpecial ? 44 : 38, color: color),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF003DA5),
+              style: TextStyle(
+                fontSize: isSpecial ? 16 : 14,
+                fontWeight: isSpecial ? FontWeight.bold : FontWeight.w600,
+                color: isSpecial ? color : const Color(0xFF003DA5),
               ),
             ),
           ],
