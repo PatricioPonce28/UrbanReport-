@@ -695,6 +695,71 @@ class _AdminReportsScreenState extends State<_AdminReportsScreen> {
     }
   }
 
+  Future<void> _deleteReporte(String reporteId, String? fotoUrl) async {
+  // Confirmar eliminación
+  final confirmar = await showDialog<bool>(
+    context: widget.context,
+    builder: (context) => AlertDialog(
+      title: const Text('Eliminar Reporte'),
+      content: const Text('¿Estás seguro de eliminar este reporte? Esta acción no se puede deshacer.'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancelar'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, true),
+          style: TextButton.styleFrom(
+            foregroundColor: const Color(0xFFE31E24),
+          ),
+          child: const Text('Eliminar'),
+        ),
+      ],
+    ),
+  );
+
+  if (confirmar != true) return;
+
+  try {
+    // Eliminar foto del storage si existe
+    if (fotoUrl != null && fotoUrl.isNotEmpty) {
+      try {
+        // Extraer el path del archivo de la URL
+        final uri = Uri.parse(fotoUrl);
+        final path = uri.pathSegments.last;
+        await _supabase.storage.from('report-photos').remove([path]);
+      } catch (e) {
+        print('Error al eliminar foto: $e');
+      }
+    }
+
+    // Eliminar el reporte de la base de datos
+    await _supabase
+        .from('reportes')
+        .delete()
+        .eq('id', reporteId);
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(widget.context).showSnackBar(
+      const SnackBar(
+        content: Text('Reporte eliminado correctamente'),
+        backgroundColor: Color(0xFF00A650),
+      ),
+    );
+
+    _loadReports();
+  } catch (e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(widget.context).showSnackBar(
+      SnackBar(
+        content: Text('Error al eliminar: $e'),
+        backgroundColor: const Color(0xFFE31E24),
+      ),
+    );
+  }
+}
+
   List<Map<String, dynamic>> get _filteredReports {
     if (_filtroEstado == 'todos') return _reportes;
     return _reportes.where((r) => r['estado'] == _filtroEstado).toList();
@@ -988,43 +1053,57 @@ if (reporte['foto_url'] != null && reporte['foto_url'].toString().isNotEmpty)
                                       },
                                     ),
                                   PopupMenuButton(
-                                    icon: const Icon(Icons.more_vert, color: Colors.grey),
-                                    itemBuilder: (context) => [
-                                      const PopupMenuItem(
-                                        value: 'pendiente',
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.pending, color: Color(0xFFFDB913)),
-                                            SizedBox(width: 8),
-                                            Text('Pendiente'),
-                                          ],
-                                        ),
-                                      ),
-                                      const PopupMenuItem(
-                                        value: 'en_proceso',
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.engineering, color: Color(0xFF003DA5)),
-                                            SizedBox(width: 8),
-                                            Text('En Proceso'),
-                                          ],
-                                        ),
-                                      ),
-                                      const PopupMenuItem(
-                                        value: 'resuelto',
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.check_circle, color: Color(0xFF00A650)),
-                                            SizedBox(width: 8),
-                                            Text('Resuelto'),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                    onSelected: (value) {
-                                      _updateEstado(reporte['id'], value);
-                                    },
-                                  ),
+  icon: const Icon(Icons.more_vert, color: Colors.grey),
+  itemBuilder: (context) => [
+    const PopupMenuItem(
+      value: 'pendiente',
+      child: Row(
+        children: [
+          Icon(Icons.pending, color: Color(0xFFFDB913)),
+          SizedBox(width: 8),
+          Text('Pendiente'),
+        ],
+      ),
+    ),
+    const PopupMenuItem(
+      value: 'en_proceso',
+      child: Row(
+        children: [
+          Icon(Icons.engineering, color: Color(0xFF003DA5)),
+          SizedBox(width: 8),
+          Text('En Proceso'),
+        ],
+      ),
+    ),
+    const PopupMenuItem(
+      value: 'resuelto',
+      child: Row(
+        children: [
+          Icon(Icons.check_circle, color: Color(0xFF00A650)),
+          SizedBox(width: 8),
+          Text('Resuelto'),
+        ],
+      ),
+    ),
+    const PopupMenuItem(
+      value: 'eliminar',
+      child: Row(
+        children: [
+          Icon(Icons.delete, color: Color(0xFFE31E24)),
+          SizedBox(width: 8),
+          Text('Eliminar', style: TextStyle(color: Color(0xFFE31E24))),
+        ],
+      ),
+    ),
+  ],
+  onSelected: (value) {
+    if (value == 'eliminar') {
+      _deleteReporte(reporte['id'], reporte['foto_url']);
+    } else {
+      _updateEstado(reporte['id'], value);
+    }
+  },
+),
                                 ],
                               ),
                             ),

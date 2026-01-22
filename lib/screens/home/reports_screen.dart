@@ -139,16 +139,24 @@ Future<String?> _uploadImage() async {
       final fileExt = _imageName!.split('.').last;
       final fileName = '$userId/$timestamp.$fileExt';
 
-      // CORRECCIÓN: Usar upload() en lugar de uploadBinary()
-      await _supabase.storage.from('report-photos').upload(
-        fileName,
-        _imageBytes!,
-        fileOptions: FileOptions(
-          contentType: 'image/$fileExt',
-        ),
-      );
+      // Subir bytes directamente
+      final response = await _supabase.storage
+          .from('report-photos')
+          .uploadBinary(
+            fileName,
+            _imageBytes!,
+            fileOptions: FileOptions(
+              contentType: 'image/$fileExt',
+              upsert: true, // Permite sobrescribir si existe
+            ),
+          );
 
-      return _supabase.storage.from('report-photos').getPublicUrl(fileName);
+      // Obtener URL pública
+      final publicUrl = _supabase.storage
+          .from('report-photos')
+          .getPublicUrl(fileName);
+
+      return publicUrl;
     } else {
       // Para móvil
       if (_imageFile == null) return null;
@@ -156,27 +164,36 @@ Future<String?> _uploadImage() async {
       final fileExt = _imageFile!.path.split('.').last;
       final fileName = '$userId/$timestamp.$fileExt';
 
-      // CORRECCIÓN: Para móvil, leer el archivo como bytes
+      // Leer archivo como bytes
       final bytes = await _imageFile!.readAsBytes();
       
-      await _supabase.storage.from('report-photos').upload(
-        fileName,
-        bytes,
-        fileOptions: FileOptions(
-          contentType: 'image/$fileExt',
-        ),
-      );
+      // Subir bytes
+      final response = await _supabase.storage
+          .from('report-photos')
+          .uploadBinary(
+            fileName,
+            bytes,
+            fileOptions: FileOptions(
+              contentType: 'image/$fileExt',
+              upsert: true,
+            ),
+          );
 
-      return _supabase.storage.from('report-photos').getPublicUrl(fileName);
+      // Obtener URL pública
+      final publicUrl = _supabase.storage
+          .from('report-photos')
+          .getPublicUrl(fileName);
+
+      return publicUrl;
     }
   } catch (e) {
     print('Error al subir imagen: $e');
-    // Muestra un error más específico
     if (!mounted) return null;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Error al subir imagen: $e'),
+        content: Text('Error al subir imagen: ${e.toString()}'),
         backgroundColor: const Color(0xFFE31E24),
+        duration: const Duration(seconds: 4),
       ),
     );
     return null;
