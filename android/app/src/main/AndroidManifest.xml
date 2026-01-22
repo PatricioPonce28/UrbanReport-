@@ -25,8 +25,8 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
-                    android:scheme="myapp"
-                    android:host="login-callback" />
+                    android:scheme="urbanreport"
+                    android:host="reset-callback" />
             </intent-filter>
             
             <!-- Launch intent -->

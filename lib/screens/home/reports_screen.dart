@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:io';
+import 'dart:typed_data';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -20,6 +22,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
   
   String _categoria = 'bache';
   File? _imageFile;
+  Uint8List? _imageBytes; // Para Flutter Web
+  String? _imageName; // Nombre del archivo para Web
   Position? _currentPosition;
   bool _isLoading = false;
   bool _isLoadingLocation = false;
@@ -42,14 +46,24 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(
-      source: ImageSource.camera,
+      source: kIsWeb ? ImageSource.gallery : ImageSource.camera, // Cambiar a gallery para Web
       maxWidth: 1024,
       maxHeight: 1024,
       imageQuality: 85,
     );
 
     if (image != null) {
-      setState(() => _imageFile = File(image.path));
+      if (kIsWeb) {
+        // Para Flutter Web, leer como bytes
+        final bytes = await image.readAsBytes();
+        setState(() {
+          _imageBytes = bytes;
+          _imageName = image.name;
+        });
+      } else {
+        // Para móvil, usar File
+        setState(() => _imageFile = File(image.path));
+      }
     }
   }
 
@@ -57,21 +71,34 @@ class _ReportsScreenState extends State<ReportsScreen> {
     setState(() => _isLoadingLocation = true);
 
     try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        throw Exception('Los servicios de ubicación están desactivados');
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
+      // En Web, la geolocalización funciona diferente
+      if (kIsWeb) {
+        // Para Web, Geolocator funciona pero de forma simplificada
+        LocationPermission permission = await Geolocator.checkPermission();
         if (permission == LocationPermission.denied) {
-          throw Exception('Permiso de ubicación denegado');
+          permission = await Geolocator.requestPermission();
+          if (permission == LocationPermission.denied) {
+            throw Exception('Permiso de ubicación denegado');
+          }
         }
-      }
+      } else {
+        // Para móvil, verificar servicios
+        bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+        if (!serviceEnabled) {
+          throw Exception('Los servicios de ubicación están desactivados');
+        }
 
-      if (permission == LocationPermission.deniedForever) {
-        throw Exception('Permiso de ubicación denegado permanentemente');
+        LocationPermission permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.denied) {
+          permission = await Geolocator.requestPermission();
+          if (permission == LocationPermission.denied) {
+            throw Exception('Permiso de ubicación denegado');
+          }
+        }
+
+        if (permission == LocationPermission.deniedForever) {
+          throw Exception('Permiso de ubicación denegado permanentemente');
+        }
       }
 
       final position = await Geolocator.getCurrentPosition(
@@ -100,16 +127,39 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
   }
 
-  Future<String?> _uploadImage() async {
-    if (_imageFile == null) return null;
+Future<String?> _uploadImage() async {
+  try {
+    final userId = _supabase.auth.currentUser!.id;
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
 
-    try {
-      final bytes = await _imageFile!.readAsBytes();
+    if (kIsWeb) {
+      // Para Flutter Web
+      if (_imageBytes == null || _imageName == null) return null;
+      
+      final fileExt = _imageName!.split('.').last;
+      final fileName = '$userId/$timestamp.$fileExt';
+
+      // CORRECCIÓN: Usar upload() en lugar de uploadBinary()
+      await _supabase.storage.from('report-photos').upload(
+        fileName,
+        _imageBytes!,
+        fileOptions: FileOptions(
+          contentType: 'image/$fileExt',
+        ),
+      );
+
+      return _supabase.storage.from('report-photos').getPublicUrl(fileName);
+    } else {
+      // Para móvil
+      if (_imageFile == null) return null;
+      
       final fileExt = _imageFile!.path.split('.').last;
-      final userId = _supabase.auth.currentUser!.id;
-      final fileName = '$userId/${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+      final fileName = '$userId/$timestamp.$fileExt';
 
-      await _supabase.storage.from('report-photos').uploadBinary(
+      // CORRECCIÓN: Para móvil, leer el archivo como bytes
+      final bytes = await _imageFile!.readAsBytes();
+      
+      await _supabase.storage.from('report-photos').upload(
         fileName,
         bytes,
         fileOptions: FileOptions(
@@ -118,10 +168,20 @@ class _ReportsScreenState extends State<ReportsScreen> {
       );
 
       return _supabase.storage.from('report-photos').getPublicUrl(fileName);
-    } catch (e) {
-      throw Exception('Error al subir imagen: $e');
     }
+  } catch (e) {
+    print('Error al subir imagen: $e');
+    // Muestra un error más específico
+    if (!mounted) return null;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error al subir imagen: $e'),
+        backgroundColor: const Color(0xFFE31E24),
+      ),
+    );
+    return null;
   }
+}
 
   Future<void> _submitReport() async {
     if (!_formKey.currentState!.validate()) return;
@@ -131,7 +191,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     try {
       // Subir imagen si existe
       String? fotoUrl;
-      if (_imageFile != null) {
+      if ((kIsWeb && _imageBytes != null) || (!kIsWeb && _imageFile != null)) {
         fotoUrl = await _uploadImage();
       }
 
@@ -154,6 +214,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
       _descripcionController.clear();
       setState(() {
         _imageFile = null;
+        _imageBytes = null;
+        _imageName = null;
         _currentPosition = null;
         _categoria = 'bache';
       });
@@ -165,6 +227,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         ),
       );
     } catch (e) {
+      print('Error al enviar reporte: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -179,6 +242,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final hasImage = kIsWeb ? _imageBytes != null : _imageFile != null;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Nuevo Reporte'),
@@ -262,26 +327,41 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ),
                 child: Column(
                   children: [
-                    if (_imageFile != null) ...[
+                    if (hasImage) ...[
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: Image.file(
-                          _imageFile!,
-                          height: 200,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                        ),
+                        child: kIsWeb
+                            ? Image.memory(
+                                _imageBytes!,
+                                height: 200,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                              )
+                            : Image.file(
+                                _imageFile!,
+                                height: 200,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                              ),
                       ),
                       const SizedBox(height: 12),
                     ],
                     ElevatedButton.icon(
                       onPressed: _pickImage,
-                      icon: Icon(_imageFile == null ? Icons.camera_alt : Icons.refresh),
-                      label: Text(_imageFile == null ? 'Tomar Foto' : 'Cambiar Foto'),
+                      icon: Icon(hasImage ? Icons.refresh : Icons.photo_library),
+                      label: Text(hasImage ? 'Cambiar Foto' : 'Seleccionar Foto'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF00A650),
                       ),
                     ),
+                    if (kIsWeb)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          'En web: selecciona desde tu galería',
+                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                        ),
+                      ),
                   ],
                 ),
               ),

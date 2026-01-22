@@ -36,24 +36,35 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Cargar el rol del usuario
       try {
-        final profile = await _supabase
+        print('🔍 Cargando perfil para usuario: ${_user!.id}');
+        
+        final response = await _supabase
             .from('profiles')
             .select('role')
             .eq('id', _user!.id)
             .single();
         
+        print('✅ Perfil obtenido: $response');
+        
+        final userRole = response['role'] as String?;
+        print('🎭 Rol del usuario: $userRole');
+        
         setState(() {
-          _userRole = profile['role'] ?? 'user';
+          _userRole = userRole ?? 'user';
           _isLoadingRole = false;
         });
 
         // Si es admin, redirigir al dashboard
         if (_userRole == 'admin' && mounted) {
+          print('🚀 Redirigiendo al Dashboard de Admin');
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (_) => const AdminDashboard()),
           );
+        } else {
+          print('👤 Usuario normal - permaneciendo en Home');
         }
       } catch (e) {
+        print('❌ Error al cargar perfil: $e');
         setState(() => _isLoadingRole = false);
       }
     }
@@ -166,6 +177,52 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+}
+
+// En tu home_screen.dart, dentro de la clase _HomeTab
+Widget _StatCard({
+  required IconData icon,
+  required String title,
+  required String value,
+  required Color color,
+}) {
+  return Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: Colors.grey.shade200),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.05),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    ),
+    child: Column(
+      children: [
+        Icon(icon, color: color, size: 32),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade600,
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 // Tab de Inicio
@@ -305,38 +362,7 @@ class _HomeTab extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               
-              // Estadísticas
-              const Text(
-                'Estadísticas',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF003DA5),
-                ),
-              ),
-              const SizedBox(height: 16),
-              
-              Row(
-                children: [
-                  Expanded(
-                    child: _StatCard(
-                      icon: Icons.pending_actions,
-                      title: 'Pendientes',
-                      value: '0',
-                      color: const Color(0xFFFDB913),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _StatCard(
-                      icon: Icons.check_circle,
-                      title: 'Resueltos',
-                      value: '0',
-                      color: const Color(0xFF00A650),
-                    ),
-                  ),
-                ],
-              ),
+
             ],
           ),
         ),
@@ -404,55 +430,6 @@ class _QuickActionCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-// Card de estadística
-class _StatCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String value;
-  final Color color;
-
-  const _StatCard({
-    required this.icon,
-    required this.title,
-    required this.value,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 32),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade600,
-            ),
-          ),
-        ],
       ),
     );
   }

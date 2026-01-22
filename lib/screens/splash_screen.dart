@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'auth/login_screen.dart';
 import 'home/home_screen.dart';
+import 'admin/admin_dashboard.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -25,10 +26,44 @@ class _SplashScreenState extends State<SplashScreen> {
     final session = Supabase.instance.client.auth.currentSession;
     
     if (session != null) {
-      // Usuario ya autenticado
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-      );
+      // Usuario autenticado - verificar rol
+      try {
+        final userId = session.user.id;
+        print('🔍 Verificando rol para usuario: $userId');
+        
+        final profile = await Supabase.instance.client
+            .from('profiles')
+            .select('role')
+            .eq('id', userId)
+            .single();
+
+        print('✅ Perfil cargado: $profile');
+        final userRole = profile['role'] as String?;
+        print('🎭 Rol detectado: $userRole');
+
+        if (!mounted) return;
+
+        if (userRole == 'admin') {
+          print('🚀 Usuario es ADMIN - redirigiendo a Dashboard');
+          // Es admin
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const AdminDashboard()),
+          );
+        } else {
+          print('👤 Usuario normal - redirigiendo a Home');
+          // Es usuario normal
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+          );
+        }
+      } catch (e) {
+        print('❌ Error al cargar perfil en splash: $e');
+        // Error al cargar perfil, ir a home normal
+        if (!mounted) return;
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        );
+      }
     } else {
       // Usuario no autenticado
       Navigator.of(context).pushReplacement(

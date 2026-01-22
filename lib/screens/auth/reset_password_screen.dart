@@ -1,33 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'login_screen.dart';
 
-class ForgotPasswordScreen extends StatefulWidget {
-  const ForgotPasswordScreen({super.key});
+class ResetPasswordScreen extends StatefulWidget {
+  const ResetPasswordScreen({super.key});
 
   @override
-  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
+  State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
 }
 
-class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  Future<void> _resetPassword() async {
+  Future<void> _updatePassword() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
-      await Supabase.instance.client.auth.resetPasswordForEmail(
-        _emailController.text.trim(),
-        redirectTo: 'myapp://reset-callback/',
+      await Supabase.instance.client.auth.updateUser(
+        UserAttributes(password: _passwordController.text),
       );
 
       if (!mounted) return;
@@ -37,23 +41,26 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         barrierDismissible: false,
         builder: (context) => AlertDialog(
           icon: const Icon(
-            Icons.email_outlined,
+            Icons.check_circle_outline,
             size: 64,
-            color: Color(0xFF003DA5),
+            color: Color(0xFF00A650),
           ),
-          title: const Text('Correo enviado'),
+          title: const Text('¡Contraseña actualizada!'),
           content: const Text(
-            'Te hemos enviado un correo con instrucciones para restablecer tu contraseña. '
-            'Por favor revisa tu bandeja de entrada.',
+            'Tu contraseña ha sido cambiada exitosamente. '
+            'Ahora puedes iniciar sesión con tu nueva contraseña.',
             textAlign: TextAlign.center,
           ),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Cerrar diálogo
-                Navigator.of(context).pop(); // Volver a login
+                Navigator.of(context).pop();
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
               },
-              child: const Text('Entendido'),
+              child: const Text('Ir al Login'),
             ),
           ],
         ),
@@ -85,7 +92,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Recuperar Contraseña'),
+        title: const Text('Nueva Contraseña'),
       ),
       body: SafeArea(
         child: Center(
@@ -96,7 +103,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Icono
                   Container(
                     width: 100,
                     height: 100,
@@ -112,7 +118,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   ),
                   const SizedBox(height: 24),
                   const Text(
-                    '¿Olvidaste tu contraseña?',
+                    'Crear nueva contraseña',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 24,
@@ -122,7 +128,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   ),
                   const SizedBox(height: 12),
                   const Text(
-                    'No te preocupes. Ingresa tu correo electrónico y te enviaremos instrucciones para restablecer tu contraseña.',
+                    'Ingresa tu nueva contraseña para tu cuenta',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 14,
@@ -132,31 +138,70 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   ),
                   const SizedBox(height: 32),
                   
-                  // Email
+                  // Nueva contraseña
                   TextFormField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: 'Correo electrónico',
-                      prefixIcon: Icon(Icons.email_outlined),
-                      hintText: 'tucorreo@ejemplo.com',
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    decoration: InputDecoration(
+                      labelText: 'Nueva contraseña',
+                      prefixIcon: const Icon(Icons.lock_outlined),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                        ),
+                        onPressed: () {
+                          setState(() => _obscurePassword = !_obscurePassword);
+                        },
+                      ),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Por favor ingresa tu correo';
+                        return 'Por favor ingresa una contraseña';
                       }
-                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                          .hasMatch(value)) {
-                        return 'Ingresa un correo válido';
+                      if (value.length < 6) {
+                        return 'La contraseña debe tener al menos 6 caracteres';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Confirmar contraseña
+                  TextFormField(
+                    controller: _confirmPasswordController,
+                    obscureText: _obscureConfirmPassword,
+                    decoration: InputDecoration(
+                      labelText: 'Confirmar contraseña',
+                      prefixIcon: const Icon(Icons.lock_outlined),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureConfirmPassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                        ),
+                        onPressed: () {
+                          setState(() =>
+                              _obscureConfirmPassword = !_obscureConfirmPassword);
+                        },
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Por favor confirma tu contraseña';
+                      }
+                      if (value != _passwordController.text) {
+                        return 'Las contraseñas no coinciden';
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 32),
                   
-                  // Botón de Enviar
+                  // Botón
                   ElevatedButton(
-                    onPressed: _isLoading ? null : _resetPassword,
+                    onPressed: _isLoading ? null : _updatePassword,
                     child: _isLoading
                         ? const SizedBox(
                             height: 20,
@@ -168,18 +213,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             ),
                           )
                         : const Text(
-                            'Enviar Instrucciones',
+                            'Actualizar Contraseña',
                             style: TextStyle(fontSize: 16),
                           ),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // Volver al login
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    child: const Text('Volver al inicio de sesión'),
                   ),
                 ],
               ),

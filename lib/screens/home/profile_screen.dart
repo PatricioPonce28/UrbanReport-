@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;  
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
+import 'dart:typed_data';  // ← NUEVO
 import 'package:image_picker/image_picker.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -20,6 +22,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _avatarUrl;
   bool _isLoading = false;
   bool _isEditing = false;
+  File? _imageFile;
+  Uint8List? _imageBytes; // ← NUEVO: Para Flutter Web
+  String? _imageName;     // ← NUEVO: Nombre del archivo para Web
 
   final _nameController = TextEditingController();
 
@@ -55,7 +60,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(
-      source: ImageSource.gallery,
+      source: kIsWeb ? ImageSource.gallery : ImageSource.camera, 
       maxWidth: 512,
       maxHeight: 512,
       imageQuality: 75,
@@ -66,23 +71,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final bytes = await File(image.path).readAsBytes();
-      final fileExt = image.path.split('.').last;
+      String? imageUrl;
+      final fileExt = image.name.split('.').last;
       final fileName = '${_user!.id}_${DateTime.now().millisecondsSinceEpoch}.$fileExt';
       final filePath = 'avatars/$fileName';
 
-      // Subir a Supabase Storage
-      await _supabase.storage.from('profiles').uploadBinary(
-        filePath,
-        bytes,
-        fileOptions: FileOptions(
-          contentType: 'image/$fileExt',
-          upsert: true,
-        ),
-      );
+      if (kIsWeb) {
+        // Para Flutter Web
+        final bytes = await image.readAsBytes();
+        
+        // Subir a Supabase Storage
+        await _supabase.storage.from('profiles').uploadBinary(
+          filePath,
+          bytes,
+          fileOptions: FileOptions(
+            contentType: 'image/$fileExt',
+            upsert: true,
+          ),
+        );
 
-      // Obtener URL pública
-      final imageUrl = _supabase.storage.from('profiles').getPublicUrl(filePath);
+        imageUrl = _supabase.storage.from('profiles').getPublicUrl(filePath);
+        
+        setState(() {
+          _imageBytes = bytes;
+          _imageName = image.name;
+          _avatarUrl = imageUrl;
+        });
+      } else {
+        // Para móvil
+        final bytes = await File(image.path).readAsBytes();
+        
+        // Subir a Supabase Storage
+        await _supabase.storage.from('profiles').uploadBinary(
+          filePath,
+          bytes,
+          fileOptions: FileOptions(
+            contentType: 'image/$fileExt',
+            upsert: true,
+          ),
+        );
+
+        imageUrl = _supabase.storage.from('profiles').getPublicUrl(filePath);
+        
+        setState(() {
+          _imageFile = File(image.path);
+          _avatarUrl = imageUrl;
+        });
+      }
 
       // Actualizar metadata del usuario
       await _supabase.auth.updateUser(
@@ -94,8 +129,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       );
 
-      setState(() => _avatarUrl = imageUrl);
-
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -104,6 +137,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       );
     } catch (e) {
+      print('Error al subir foto: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

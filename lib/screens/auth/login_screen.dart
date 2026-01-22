@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 import '../home/home_screen.dart';
+import '../admin/admin_dashboard.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -39,9 +40,44 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
 
       if (response.session != null) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-        );
+        // Verificar el rol del usuario
+        try {
+          final userId = response.user!.id;
+          print('🔍 Usuario autenticado: $userId');
+          
+          final profile = await Supabase.instance.client
+              .from('profiles')
+              .select('role')
+              .eq('id', userId)
+              .single();
+
+          print('✅ Perfil obtenido: $profile');
+          final userRole = profile['role'] as String?;
+          print('🎭 Rol: $userRole');
+
+          if (!mounted) return;
+
+          if (userRole == 'admin') {
+            print('🚀 Redirigiendo a Admin Dashboard');
+            // Redirigir al dashboard de admin
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const AdminDashboard()),
+            );
+          } else {
+            print('👤 Redirigiendo a Home de usuario');
+            // Redirigir al home de usuario normal
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
+            );
+          }
+        } catch (e) {
+          print('❌ Error al obtener perfil: $e');
+          // Si hay error al obtener el perfil, ir al home normal
+          if (!mounted) return;
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+          );
+        }
       }
     } on AuthException catch (e) {
       if (!mounted) return;
